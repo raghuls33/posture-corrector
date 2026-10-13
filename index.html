@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Posture Corrector: a smart wearable that detects forward-neck posture and nudges you upright with a gentle vibration.">
+<title>Posture Corrector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a single phone-width column of frosted glass panels floating over slow aurora light, with an app-style tab bar pinned to the bottom. */
+:root{
+  color-scheme: dark;
+  --ink:#06141a;          /* page ground */
+  --ink-2:#0b2229;
+  --mint:#7cf0c8;         /* accent: upright / good */
+  --amber:#ffb86b;        /* semantic: slouch warning */
+  --glow:#2fb9c9;         /* aurora secondary */
+  --fg:#e9f6f3;
+  --muted:#93b3ad;
+  --glass:rgba(220,255,245,.07);
+  --glass-hi:rgba(220,255,245,.12);
+  --stroke:rgba(200,255,240,.16);
+  --stroke-soft:rgba(200,255,240,.08);
+  --f-display:"Unbounded", "Manrope", system-ui, sans-serif;
+  --f-body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r-lg:28px; --r-md:20px; --r-sm:14px;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ink)}
+body{color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* Aurora backdrop */
+.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.aurora i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;animation:drift 22s ease-in-out infinite alternate}
+.aurora i:nth-child(1){width:420px;height:420px;background:var(--glow);top:-120px;left:-140px}
+.aurora i:nth-child(2){width:360px;height:360px;background:var(--mint);top:38%;right:-180px;opacity:.32;animation-duration:28s}
+.aurora i:nth-child(3){width:300px;height:300px;background:#1f6f8b;bottom:-80px;left:-60px;animation-duration:34s}
+.aurora::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,transparent 40%,var(--ink) 95%)}
+@keyframes drift{to{transform:translate(60px,80px) scale(1.15)}}
+
+.app{position:relative;z-index:1;max-width:460px;margin:0 auto;padding-inline:16px;padding-block:14px 120px;display:flex;flex-direction:column;gap:18px}
+
+.glass{background:linear-gradient(160deg,var(--glass-hi),var(--glass));border:1px solid var(--stroke);border-radius:var(--r-lg);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);box-shadow:0 20px 50px -24px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
+
+/* Top bar */
+.topbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 10px 16px;border-radius:999px}
+.brand{font-family:var(--f-display);font-weight:500;font-size:13px;letter-spacing:.04em}
+.pill{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;background:rgba(124,240,200,.12);color:var(--mint);border:1px solid rgba(124,240,200,.25);white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 0 currentColor;animation:ping 2s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(124,240,200,.5)}100%{box-shadow:0 0 0 8px rgba(124,240,200,0)}}
+
+/* Hero */
+.hero{padding:22px 20px 20px;display:flex;flex-direction:column;gap:16px;overflow:hidden;position:relative}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(30px,9vw,40px);line-height:1.02;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1 span{color:var(--mint)}
+.lede{margin:0;color:var(--muted);max-width:40ch}
+.device{position:relative;border-radius:var(--r-md);overflow:hidden;aspect-ratio:10/9;max-width:100%;border:1px solid var(--stroke-soft)}
+.device img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.9) contrast(1.05)}
+.device::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(6,20,26,.75))}
+.device .tag{position:absolute;left:12px;bottom:12px;z-index:2;font-family:var(--f-mono);font-size:11px;color:var(--fg);padding:6px 10px;border-radius:10px;background:rgba(6,20,26,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--stroke)}
+.ripple{position:absolute;left:50%;top:58%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;border:2px solid var(--amber);opacity:0;z-index:1}
+.buzz .ripple{animation:rip 1.1s ease-out 2}
+.buzz .ripple:nth-of-type(2){animation-delay:.25s}
+.buzz img{animation:shake .12s linear 8}
+@keyframes rip{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+/* Live monitor */
+.monitor{padding:20px;display:flex;flex-direction:column;gap:16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h2{font-family:var(--f-display);font-weight:500;font-size:18px;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{font-size:13px;color:var(--muted);margin:0}
+.gauge-wrap{position:relative;display:grid;place-items:center}
+.gauge{width:100%;max-width:300px;height:auto;display:block}
+.readout{text-align:center;margin-top:4px}
+.angle{font-family:var(--f-display);font-weight:700;font-size:46px;line-height:1;font-variant-numeric:tabular-nums;transition:color .3s}
+.angle small{font-size:20px;color:var(--muted);font-weight:500}
+.state{display:inline-flex;margin-top:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:999px;transition:all .3s}
+.ok .state{color:var(--mint);background:rgba(124,240,200,.12)}
+.bad .state{color:var(--amber);background:rgba(255,184,107,.14)}
+.bad .angle{color:var(--amber)}
+.slider-box{display:flex;flex-direction:column;gap:8px}
+.slider-box label{font-size:13px;font-weight:600;display:flex;justify-content:space-between}
+.slider-box label span{font-family:var(--f-mono);font-weight:500;color:var(--muted);font-size:12px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:999px;background:linear-gradient(90deg,var(--mint) 0 37.5%,var(--amber) 37.5% 100%);opacity:.85;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--fg);border:4px solid var(--ink-2);box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:grab}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--fg);border:4px solid var(--ink-2);cursor:grab}
+input[type=range]:focus-visible{outline:2px solid var(--mint);outline-offset:4px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{padding:12px;border-radius:var(--r-sm);background:rgba(255,255,255,.04);border:1px solid var(--stroke-soft);min-width:0}
+.stat b{display:block;font-family:var(--f-display);font-weight:500;font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted);letter-spacing:.04em}
+.btn{appearance:none;border:1px solid var(--stroke);background:rgba(124,240,200,.14);color:var(--fg);font:600 14px var(--f-body);padding:12px 18px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,background .2s}
+.btn:hover{background:rgba(124,240,200,.22)}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+
+/* Sections */
+section{scroll-margin-top:80px}
+.card{padding:20px;display:flex;flex-direction:column;gap:14px}
+.card p{margin:0;color:var(--muted)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0;position:relative}
+.steps li{display:grid;grid-template-columns:40px 1fr;gap:14px;padding:12px 0;position:relative}
+.steps li:not(:last-child)::before{content:"";position:absolute;left:19px;top:52px;bottom:-8px;width:2px;background:linear-gradient(var(--stroke),transparent)}
+.num{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;font-family:var(--f-mono);font-size:14px;color:var(--mint);background:rgba(124,240,200,.1);border:1px solid rgba(124,240,200,.25)}
+.steps h3{margin:0 0 2px;font-size:15px;font-weight:700}
+.steps p{font-size:14px}
+
+.features{display:grid;grid-template-columns:1fr;gap:12px}
+.feat{padding:18px;display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:center;border-radius:var(--r-md)}
+.feat .ico{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(140deg,rgba(124,240,200,.25),rgba(47,185,201,.08));border:1px solid var(--stroke)}
+.feat .ico svg{width:24px;height:24px;stroke:var(--mint);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.feat h3{margin:0;font-size:15px;font-weight:700}
+.feat p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--stroke);transition:background .2s}
+.chip:hover{background:rgba(124,240,200,.12)}
+
+.benefits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.benefits li{display:grid;grid-template-columns:24px 1fr;gap:12px;align-items:start;font-size:14px}
+.benefits svg{width:22px;height:22px;stroke:var(--mint);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;margin-top:1px}
+
+.note{font-size:11px;color:var(--muted);font-style:italic}
+
+/* Bottom tab bar */
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:10;width:min(428px,calc(100% - 32px));display:grid;grid-template-columns:repeat(3,1fr);padding:8px;border-radius:26px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:18px;color:var(--muted);text-decoration:none;font-size:11px;font-weight:600;transition:all .25s}
+.tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.active{color:var(--ink);background:var(--mint);box-shadow:0 6px 18px -6px rgba(124,240,200,.7)}
+.tab:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+
+/* Toast */
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);transform:translate(-50%,-20px);z-index:20;padding:12px 18px;border-radius:18px;font-size:13px;font-weight:600;display:flex;gap:10px;align-items:center;opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.2,.8,.2,1);background:rgba(40,28,14,.55);border:1px solid rgba(255,184,107,.35);color:var(--amber);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body style="margin:0">
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8v8M6 5v14M18 5v14M22 8v8"/><rect x="9" y="3" width="6" height="18" rx="2"/></svg>
+  Gentle vibration sent · sit up tall
+</div>
+
+<main class="app">
+  <header class="topbar glass">
+    <span class="brand">POSTURE&nbsp;CORRECTOR</span>
+    <span class="pill"><span class="dot"></span>Connected</span>
+  </header>
+
+  <section id="overview" class="hero glass">
+    <span class="eyebrow">Smart wearable · Tech-neck care</span>
+    <h1>Keep your neck <span>in line.</span></h1>
+    <p class="lede">A smart wearable that detects forward-neck posture and gives a gentle vibration to remind you to sit or stand correctly.</p>
+    <div class="device" id="device">
+      <img alt="The Posture Corrector: a black neck band with a grey sensor pod mounted below it" src="data:image/webp;base64,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">
+      <span class="ripple"></span><span class="ripple"></span>
+      <span class="tag">Sensor pod · vibration motor</span>
+    </div>
+  </section>
+
+  <section class="monitor glass" aria-labelledby="live-h">
+    <div class="row">
+      <div>
+        <h2 id="live-h">Live neck angle</h2>
+        <p class="sub">Drag to tilt your head forward</p>
+      </div>
+      <button class="btn" id="demo" type="button" aria-pressed="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>Simulate</span>
+      </button>
+    </div>
+
+    <div class="gauge-wrap ok" id="gaugeWrap">
+      <svg class="gauge" viewBox="0 0 300 175" aria-hidden="true">
+        <defs>
+          <linearGradient id="gArc" x1="0" x2="1">
+            <stop offset="0" stop-color="#7cf0c8"/><stop offset=".375" stop-color="#7cf0c8"/>
+            <stop offset=".45" stop-color="#ffb86b"/><stop offset="1" stop-color="#ff8f6b"/>
+          </linearGradient>
+        </defs>
+        <path d="M30 160 A120 120 0 0 1 270 160" fill="none" stroke="rgba(200,255,240,.1)" stroke-width="16" stroke-linecap="round"/>
+        <path id="arcFill" d="M30 160 A120 120 0 0 1 270 160" fill="none" stroke="url(#gArc)" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="80"/>
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="#93b3ad" text-anchor="middle">
+          <text x="30" y="174">0°</text><text x="50" y="62">10°</text><text x="150" y="14">20°</text><text x="250" y="62">30°</text><text x="270" y="174">40°</text>
+        </g>
+        <line id="needle" x1="150" y1="160" x2="150" y2="62" stroke="#e9f6f3" stroke-width="3" stroke-linecap="round" style="transform-origin:150px 160px;transition:transform .35s cubic-bezier(.2,.8,.2,1)"/>
+        <circle cx="150" cy="160" r="7" fill="#e9f6f3"/>
+      </svg>
+      <div class="readout">
+        <div class="angle"><span id="angle">8</span><small>°</small></div>
+        <span class="state" id="state">Upright</span>
+      </div>
+    </div>
+
+    <div class="slider-box">
+      <label for="tilt">Forward head tilt <span>alert above 15°</span></label>
+      <input type="range" id="tilt" min="0" max="40" value="8" aria-describedby="state">
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="nudges">3</b><span>Nudges today</span></div>
+      <div class="stat"><b>84%</b><span>Upright time</span></div>
+      <div class="stat"><b>6.2h</b><span>Worn today</span></div>
+    </div>
+    <span class="note">Demo readings. The real app shows data from your device.</span>
+  </section>
+
+  <section id="how" class="card glass" aria-labelledby="how-h">
+    <span class="eyebrow">What it is</span>
+    <p>A wearable posture device paired with a mobile app. It senses when your head and neck drift forward and nudges you back to a healthy position.</p>
+    <h2 id="how-h">How it works</h2>
+    <ol class="steps">
+      <li><span class="num">01</span><div><h3>Wear &amp; pair</h3><p>Put on the device and connect it to the mobile app.</p></div></li>
+      <li><span class="num">02</span><div><h3>Detect</h3><p>Sensors pick up forward-neck posture as it happens.</p></div></li>
+      <li><span class="num">03</span><div><h3>Nudge</h3><p>A gentle vibration prompts you to correct your position.</p></div></li>
+      <li><span class="num">04</span><div><h3>Track</h3><p>The app records posture data so conditions and progress can be monitored over time.</p></div></li>
+    </ol>
+  </section>
+
+  <section id="features" aria-labelledby="feat-h" style="display:flex;flex-direction:column;gap:12px">
+    <h2 id="feat-h" style="padding-inline:6px">Key features</h2>
+    <div class="features">
+      <div class="feat glass">
+        <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="3"/><path d="M12 9v6M9 21l3-6 3 6M15 9l3 2"/></svg></span>
+        <div><h3>Forward-neck detection</h3><p>Senses when your head drifts ahead of your shoulders.</p></div>
+      </div>
+      <div class="feat glass">
+        <span class="ico"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="18" rx="2"/><path d="M5 8v8M19 8v8M2 10v4M22 10v4"/></svg></span>
+        <div><h3>Gentle vibration feedback</h3><p>A quiet buzz you feel, without sound or a screen.</p></div>
+      </div>
+      <div class="feat glass">
+        <span class="ico"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M9 16l2-3 2 2 2-4"/></svg></span>
+        <div><h3>Mobile app tracking</h3><p>Posture history and progress monitoring in one place.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card glass" aria-labelledby="who-h">
+    <h2 id="who-h">Who it's for</h2>
+    <div class="chips">
+      <span class="chip">Office workers</span>
+      <span class="chip">Students</span>
+      <span class="chip">Long hours on phones</span>
+      <span class="chip">Long hours on computers</span>
+      <span class="chip">Physiotherapy patients</span>
+    </div>
+    <h2>Benefits</h2>
+    <ul class="benefits">
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span>Builds better posture habits through real-time reminders</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span>Lets users and therapists see posture trends and progress in the app</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span>Helps reduce neck strain caused by tech neck</span></li>
+    </ul>
+  </section>
+
+</main>
+
+<nav class="tabbar glass" aria-label="Sections">
+  <a class="tab active" href="#overview"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Overview</a>
+  <a class="tab" href="#how"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>How</a>
+  <a class="tab" href="#features"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.8 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Features</a>
+</nav>
+
+<script>
+(function(){
+  const LIMIT=15, MAX=40;
+  const tilt=document.getElementById('tilt'), angleEl=document.getElementById('angle'),
+        stateEl=document.getElementById('state'), wrap=document.getElementById('gaugeWrap'),
+        needle=document.getElementById('needle'), arc=document.getElementById('arcFill'),
+        device=document.getElementById('device'), toast=document.getElementById('toast'),
+        nudgesEl=document.getElementById('nudges'), demoBtn=document.getElementById('demo');
+  let nudges=3, slouchTimer=null, toastTimer=null, lastBad=false;
+
+  function render(v){
+    angleEl.textContent=v;
+    needle.style.transform='rotate('+(-90+v/MAX*180)+'deg)';
+    arc.setAttribute('stroke-dashoffset',100-v/MAX*100);
+    const bad=v>LIMIT;
+    wrap.classList.toggle('bad',bad); wrap.classList.toggle('ok',!bad);
+    stateEl.textContent= bad ? (v>28?'Tech neck':'Slouching') : 'Upright';
+    if(bad&&!lastBad){ clearTimeout(slouchTimer); slouchTimer=setTimeout(buzz,1200); }
+    if(!bad){ clearTimeout(slouchTimer); }
+    lastBad=bad;
+  }
+  function buzz(){
+    nudges++; nudgesEl.textContent=nudges;
+    device.classList.remove('buzz'); void device.offsetWidth; device.classList.add('buzz');
+    toast.classList.add('show'); clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>toast.classList.remove('show'),2600);
+  }
+  tilt.addEventListener('input',e=>{stopDemo();render(+e.target.value)});
+
+  // Simulated session: drift forward, get nudged, correct.
+  let demoRAF=null;
+  const path=[[0,8],[1800,12],[3600,24],[5200,26],[6200,9],[8000,7]];
+  function stopDemo(){ if(demoRAF){cancelAnimationFrame(demoRAF);demoRAF=null;demoBtn.setAttribute('aria-pressed','false');demoBtn.querySelector('span').textContent='Simulate';} }
+  demoBtn.addEventListener('click',()=>{
+    if(demoRAF){stopDemo();return;}
+    demoBtn.setAttribute('aria-pressed','true'); demoBtn.querySelector('span').textContent='Stop';
+    const t0=performance.now();
+    (function step(now){
+      const t=now-t0; let v=path[path.length-1][1];
+      for(let i=1;i<path.length;i++){ if(t<path[i][0]){const [a,va]=path[i-1],[b,vb]=path[i];const k=(t-a)/(b-a);v=va+(vb-va)*(k*k*(3-2*k));break;} }
+      v=Math.round(v); tilt.value=v; render(v);
+      if(t<path[path.length-1][0]) demoRAF=requestAnimationFrame(step); else stopDemo();
+    })(t0);
+  });
+  render(+tilt.value);
+
+
+  // Tab bar highlight
+  const tabs=[...document.querySelectorAll('.tab')];
+  const secs=tabs.map(t=>document.querySelector(t.getAttribute('href')));
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{
+      es.forEach(e=>{ if(e.isIntersecting){ const i=secs.indexOf(e.target); tabs.forEach((t,j)=>t.classList.toggle('active',i===j)); } });
+    },{rootMargin:'-40% 0px -50% 0px'});
+    secs.forEach(s=>s&&io.observe(s));
+  }
+  tabs.forEach(t=>t.addEventListener('click',e=>{e.preventDefault();document.querySelector(t.getAttribute('href')).scrollIntoView({behavior:'smooth',block:'start'});}));
+})();
+</script>
+
+</body>
+</html>
